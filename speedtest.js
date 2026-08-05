@@ -47,7 +47,7 @@ speedStart.onclick = async () => {
       </div>
     `;
 
-    const ping = await measurePing(document.getElementById("progress"), document.getElementById("pingValue"));
+    const ping = await measurePing(5, 10, 20, document.getElementById("progress"), document.getElementById("pingValue"));
 
     await new Promise(r => setTimeout(r, 600));
 
@@ -84,24 +84,60 @@ speedStart.onclick = async () => {
   }
 };
 
-async function measurePing(progressBar, pingText) {
+async function measurePing(warmupSec, waitSec, maxSec, progressBar, pingText) {
   const pings = [];
+  const startTime = performance.now();
+  let lowestPing = Infinity;
+  let lowestTime = startTime;
+  let testEnded = false;
 
-  for (let i = 0; i < 10; i++) {
-    const start = performance.now();
-    await fetch("https://ip-check-livid.vercel.app/api/ip?ping=1", { cache: "no-store" });
-    const end = performance.now();
-    pings.push(Math.round(end - start));
-
-    progressBar.style.width = ((i + 1) / 10) * 100 + "%";
-    pings.sort((a, b) => a - b);
-    pingText.textContent = pings[Math.floor(pings.length / 2)] + " мс";
-
-    if (i < 9) {
-      await new Promise(r => setTimeout(r, 80));
+  async function pingLoop() {
+    while (!testEnded) {
+      const start = performance.now();
+      await fetch("https://ip-check-livid.vercel.app/api/ip?ping=1", { cache: "no-store" });
+      const end = performance.now();
+      const pingVal = Math.round(end - start);
+      pings.push(pingVal);
+      pings.sort((a, b) => a - b);
     }
   }
 
+  pingLoop();
+
+  const updateInterval = setInterval(() => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    progressBar.style.width = Math.min((elapsed / maxSec) * 100, 100) + "%";
+
+    if (pings.length > 0) {
+      const currentPing = pings[Math.floor(pings.length / 2)];
+      pingText.textContent = currentPing + " мс";
+
+      if (elapsed > warmupSec) {
+        if (currentPing < lowestPing) {
+          lowestPing = currentPing;
+          lowestTime = performance.now();
+        }
+      }
+
+      if (lowestPing < Infinity && elapsed > warmupSec) {
+        const timeSinceLowest = (performance.now() - lowestTime) / 1000;
+        if (timeSinceLowest > waitSec && currentPing > lowestPing) {
+          testEnded = true;
+        }
+      }
+    }
+
+    if (elapsed >= maxSec) {
+      testEnded = true;
+    }
+  }, 150);
+
+  await new Promise(r => setTimeout(r, maxSec * 1000));
+
+  testEnded = true;
+  clearInterval(updateInterval);
+
+  if (pings.length === 0) return 0;
   pings.sort((a, b) => a - b);
   return pings[Math.floor(pings.length / 2)];
 }

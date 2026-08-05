@@ -111,7 +111,7 @@ DNS: ${dns.hostname || ""}`;
       ${field("ОС", device.os)}
       ${field("Версия браузера", device.browserVersion)}
       ${field("Язык", device.language)}
-      ${field("Экран монитора", `${screenRes} <span class=\"screen-help\" title=\"Мы определили разрешение экрана с учетом плотности пикселей (retina), но без учета масштаба (zoom) в браузере. Если масштаб в браузере отличен от 100%, то разрешение может быть измерено неверно.\">?</span>`)}
+      ${field("Экран монитора", `${screenRes} <span class="screen-help" title="Мы определили разрешение экрана с учетом плотности пикселей (retina), но без учета масштаба (zoom) в браузере. Если масштаб в браузере отличен от 100%, то разрешение может быть измерено неверно.">?</span>`)}
       ${field("User-Agent", device.userAgent)}
       ${field("DNS", dns.hostname)}
       <button onclick="mapOpen('${data.latitude || 0}','${data.longitude || 0}')">
