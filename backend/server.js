@@ -8,19 +8,25 @@ app.use(cors());
 
 app.get("/",async(req,res)=>{
 
-try{
-
 const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
 
-const response=await axios.get(`https://ipwho.is/${ip}`);
+console.log("Посетитель:",ip);
 
-console.log(`[${new Date().toLocaleString()}] ${response.data.country} ${response.data.ip}`);
+try{
+
+const response=await axios.get(`https://ipwho.is/${ip}`,{
+timeout:5000
+});
+
+console.log(
+`[${new Date().toLocaleString()}] ${response.data.country} ${response.data.ip}`
+);
 
 res.json(response.data);
 
 }catch(e){
 
-console.log(e.message);
+console.log("Ошибка API:",e.message);
 
 res.status(500).json({
 success:false,
@@ -33,4 +39,6 @@ error:e.message
 
 const port=process.env.PORT||3000;
 
-app.listen(port);
+app.listen(port,()=>{
+console.log("Server started on",port);
+});
