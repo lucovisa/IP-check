@@ -1,29 +1,31 @@
-const axios=require("axios");
+const button=document.getElementById("check");
+const result=document.getElementById("result");
 
-module.exports=async(req,res)=>{
+button.onclick=async()=>{
+
+result.innerHTML="Загрузка...";
 
 try{
 
-const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
+const response=await fetch("https://ip-check-livid.vercel.app/api/ip");
+const data=await response.json();
 
-console.log(`[${new Date().toLocaleString()}] IP: ${ip}`);
+result.innerHTML=`
+<h2>${data.ip}</h2>
 
-const response=await axios.get(`https://ipwho.is/${ip}`);
+<b>Страна:</b> ${data.country} ${data.flag.emoji}<br>
+<b>Регион:</b> ${data.region}<br>
+<b>Город:</b> ${data.city}<br>
+<b>Провайдер:</b> ${data.connection.isp}<br>
+<b>Организация:</b> ${data.connection.org}<br>
+<b>ASN:</b> ${data.connection.asn}<br>
+<b>Часовой пояс:</b> ${data.timezone.id}<br>
+<b>Координаты:</b> ${data.latitude}, ${data.longitude}
+`;
 
-const data=response.data;
+}catch{
 
-console.log(`${data.country} ${data.ip}`);
-
-res.status(200).json(data);
-
-}catch(e){
-
-console.log("ERROR:",e.message);
-
-res.status(500).json({
-success:false,
-error:e.message
-});
+result.innerHTML="Ошибка подключения.";
 
 }
 
