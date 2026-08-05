@@ -1,226 +1,187 @@
-const check=document.getElementById("check");
-const checkIp=document.getElementById("checkIp");
-const ipInput=document.getElementById("ipInput");
-const result=document.getElementById("result");
-const copyAll=document.getElementById("copyAll");
-const downloadTxt=document.getElementById("downloadTxt");
-const historyBox=document.getElementById("history");
-const clearHistory=document.getElementById("clearHistory");
+const check = document.getElementById("check");
+const checkIp = document.getElementById("checkIp");
+const ipInput = document.getElementById("ipInput");
+const result = document.getElementById("result");
+const copyAll = document.getElementById("copyAll");
+const downloadTxt = document.getElementById("downloadTxt");
+const historyBox = document.getElementById("history");
+const clearHistory = document.getElementById("clearHistory");
 
-let currentData="";
+let currentData = "";
 
-async function loadIP(ip=""){
-
-result.innerHTML="Загрузка...";
-
-try{
-
-let url="https://ip-check-livid.vercel.app/api/ip";
-
-if(ip){
-url+=`?ip=${ip}`;
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
-const response=await fetch(url);
-const data=await response.json();
-if(data.banned){
+async function loadIP(ip = "") {
+  result.innerHTML = "Загрузка...";
 
-localStorage.setItem(
-"banUntil",
-Date.now()+data.remaining*1000
-);
+  try {
+    let url = "https://ip-check-livid.vercel.app/api/ip";
 
-window.location.href="ban.html";
+    if (ip) {
+      url += `?ip=${encodeURIComponent(ip)}`;
+    }
 
-return;
+    const response = await fetch(url);
+    const data = await response.json();
 
-}
-saveHistory(data);
+    if (data.banned) {
+      localStorage.setItem(
+        "banUntil",
+        Date.now() + data.remaining * 1000
+      );
+      window.location.href = "ban.html";
+      return;
+    }
 
-currentData=`
-IP: ${data.ip}
-Страна: ${data.country}
-Регион: ${data.region}
-Город: ${data.city}
-Провайдер: ${data.connection.isp}
-Организация: ${data.connection.org}
-ASN: ${data.connection.asn}
-Часовой пояс: ${data.timezone.id}
-Координаты: ${data.latitude}, ${data.longitude}
-`;
+    saveHistory(data);
 
-result.innerHTML=`
-${field("IP",data.ip)}
-${field("Страна",data.country+" "+data.flag.emoji)}
-${field("Регион",data.region)}
-${field("Город",data.city)}
-${field(
-"Провайдер",
-data.providerSite
-? `<a href="${data.providerSite}" target="_blank">${data.connection.isp}</a>`
-: data.connection.isp
-)}
-${field("Организация",data.connection.org)}
-${field("ASN",data.connection.asn)}
-${field("Часовой пояс",data.timezone.id)}
-${field("Координаты",`${data.latitude}, ${data.longitude}`)}
-${field("Браузер",data.device.browser)}
-${field("ОС",data.device.os)}
-${field("Версия браузера",data.device.browserVersion)}
-${field("Язык",data.device.language)}
-${field("User-Agent",data.device.userAgent)}
-${field("DNS",data.dns.hostname)}
+    const connection = data.connection || {};
+    const device = data.device || {};
+    const dns = data.dns || {};
+    const timezone = data.timezone || {};
+    const flag = data.flag || {};
 
-<button onclick="mapOpen(${data.latitude},${data.longitude})">
-Открыть на карте
-</button>
-`;
+    currentData = `IP: ${data.ip || ""}
+Страна: ${data.country || ""}
+Регион: ${data.region || ""}
+Город: ${data.city || ""}
+Провайдер: ${connection.isp || ""}
+Организация: ${connection.org || ""}
+ASN: ${connection.asn || ""}
+Часовой пояс: ${timezone.id || ""}
+Координаты: ${data.latitude || ""}, ${data.longitude || ""}
+Браузер: ${device.browser || ""}
+ОС: ${device.os || ""}
+Версия браузера: ${device.browserVersion || ""}
+Язык: ${device.language || ""}
+User-Agent: ${device.userAgent || ""}
+DNS: ${dns.hostname || ""}`;
 
-copyAll.style.display="block";
-downloadTxt.style.display="block";
+    const flagEmoji = flag.emoji ? " " + flag.emoji : "";
+    const providerHTML = data.providerSite
+      ? `<a href="${escapeHTML(data.providerSite)}" target="_blank" rel="noopener">${escapeHTML(connection.isp || "")}</a>`
+      : escapeHTML(connection.isp || "");
 
-}catch{
+    result.innerHTML = `
+      ${field("IP", data.ip)}
+      ${field("Страна", (data.country || "") + flagEmoji)}
+      ${field("Регион", data.region)}
+      ${field("Город", data.city)}
+      ${field("Провайдер", providerHTML)}
+      ${field("Организация", connection.org)}
+      ${field("ASN", connection.asn)}
+      ${field("Часовой пояс", timezone.id)}
+      ${field("Координаты", `${data.latitude || ""}, ${data.longitude || ""}`)}
+      ${field("Браузер", device.browser)}
+      ${field("ОС", device.os)}
+      ${field("Версия браузера", device.browserVersion)}
+      ${field("Язык", device.language)}
+      ${field("User-Agent", device.userAgent)}
+      ${field("DNS", dns.hostname)}
+      <button onclick="mapOpen('${data.latitude || 0}','${data.longitude || 0}')">
+        Открыть на карте
+      </button>
+    `;
 
-result.innerHTML="Ошибка подключения";
-
-}
-
-}
-
-
-function field(name,value){
-
-return `
-<div class="info">
-<b>${name}</b>
-<span>${value}</span>
-</div>
-`;
-
-}
-
-
-function copyText(text){
-
-navigator.clipboard.writeText(text);
-
+    copyAll.style.display = "block";
+    downloadTxt.style.display = "block";
+  } catch {
+    result.innerHTML = "Ошибка подключения";
+  }
 }
 
-
-function mapOpen(lat,lon){
-
-window.open(
-`https://www.google.com/maps?q=${lat},${lon}`,
-"_blank"
-);
-
+function field(name, value) {
+  return `
+    <div class="info">
+      <b>${escapeHTML(name || "")}</b>
+      <span>${value || ""}</span>
+    </div>
+  `;
 }
 
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+}
 
-copyAll.onclick=()=>{
+function mapOpen(lat, lon) {
+  window.open(
+    `https://www.google.com/maps?q=${encodeURIComponent(lat)},${encodeURIComponent(lon)}`,
+    "_blank",
+    "noopener"
+  );
+}
 
-navigator.clipboard.writeText(currentData);
-
+copyAll.onclick = () => {
+  navigator.clipboard.writeText(currentData);
 };
 
+check.onclick = () => loadIP();
 
-check.onclick=()=>loadIP();
-
-checkIp.onclick=()=>{
-
-const ip=ipInput.value.trim();
-
-if(ip){
-loadIP(ip);
-}
-
+checkIp.onclick = () => {
+  const ip = ipInput.value.trim();
+  if (ip) {
+    loadIP(ip);
+  }
 };
 
-downloadTxt.onclick=()=>{
-
-const blob=new Blob([currentData],{
-type:"text/plain;charset=utf-8"
-});
-
-const link=document.createElement("a");
-
-link.href=URL.createObjectURL(blob);
-link.download="ip-report.txt";
-
-link.click();
-
-URL.revokeObjectURL(link.href);
-
+downloadTxt.onclick = () => {
+  const blob = new Blob([currentData], {
+    type: "text/plain;charset=utf-8"
+  });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "ip-report.txt";
+  link.click();
+  URL.revokeObjectURL(link.href);
 };
 
-function saveHistory(data){
+function saveHistory(data) {
+  let history = JSON.parse(localStorage.getItem("ipHistory")) || [];
 
-let history=JSON.parse(localStorage.getItem("ipHistory"))||[];
+  history.unshift({
+    ip: data.ip || "",
+    country: data.country || "",
+    city: data.city || "",
+    date: new Date().toLocaleString()
+  });
 
-history.unshift({
-ip:data.ip,
-country:data.country,
-city:data.city,
-date:new Date().toLocaleString()
-});
+  if (history.length > 10) {
+    history = history.slice(0, 10);
+  }
 
-if(history.length>10){
-history=history.slice(0,10);
+  localStorage.setItem("ipHistory", JSON.stringify(history));
+  showHistory();
 }
 
-localStorage.setItem(
-"ipHistory",
-JSON.stringify(history)
-);
+function showHistory() {
+  let history = JSON.parse(localStorage.getItem("ipHistory")) || [];
+  historyBox.innerHTML = "";
 
-showHistory();
+  if (history.length === 0) {
+    historyBox.textContent = "История пуста";
+    return;
+  }
 
+  history.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.innerHTML = `
+      <b>${escapeHTML(item.ip || "")}</b><br>
+      ${escapeHTML(item.country || "")}<br>
+      ${escapeHTML(item.city || "")}<br>
+      <small>${escapeHTML(item.date || "")}</small>
+    `;
+    historyBox.appendChild(div);
+  });
 }
 
-
-function showHistory(){
-
-let history=JSON.parse(localStorage.getItem("ipHistory"))||[];
-
-historyBox.innerHTML="";
-
-if(history.length===0){
-
-historyBox.innerHTML="История пуста";
-return;
-
-}
-
-history.forEach(item=>{
-
-historyBox.innerHTML+=`
-
-<div class="history-item">
-
-<b>${item.ip}</b><br>
-
-${item.country}<br>
-
-${item.city||""}<br>
-
-<small>${item.date}</small>
-
-</div>
-
-`;
-
-});
-
-}
-
-
-clearHistory.onclick=()=>{
-
-localStorage.removeItem("ipHistory");
-
-showHistory();
-
+clearHistory.onclick = () => {
+  localStorage.removeItem("ipHistory");
+  showHistory();
 };
-
 
 showHistory();
