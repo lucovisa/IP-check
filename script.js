@@ -1,47 +1,52 @@
-const button=document.getElementById("check");
-const result=document.getElementById("result");
-
-button.onclick=async()=>{
-
-result.innerHTML="Загрузка...";
-
-try{
-
-const response=await fetch("https://ip-check-lh5l.onrender.com/");
-const data=await response.json();
-
-result.innerHTML=`
-<h2>${data.ip}</h2>
-
-<b>Страна</b><br>
-${data.country}<br><br>
-
-<b>Город</b><br>
-${data.city}<br><br>
-
-<b>Регион</b><br>
-${data.region}<br><br>
-
-<b>Провайдер</b><br>
-${data.connection.isp}<br><br>
-
-<b>Организация</b><br>
-${data.connection.org}<br><br>
-
-<b>ASN</b><br>
-${data.connection.asn}<br><br>
-
-<b>Часовой пояс</b><br>
-${data.timezone.id}<br><br>
-
-<b>Координаты</b><br>
-${data.latitude}, ${data.longitude}
-`;
-
-}catch{
-
-result.innerHTML="Ошибка подключения к серверу.";
-
+body{
+margin:0;
+background:#090909;
+color:white;
+font-family:Arial,sans-serif;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
 }
 
-};
+.container{
+width:90%;
+max-width:700px;
+background:#121212;
+border-radius:20px;
+padding:30px;
+box-shadow:0 0 30px rgba(255,255,255,.05);
+}
+
+h1{
+text-align:center;
+margin-bottom:25px;
+}
+
+button{
+width:100%;
+padding:16px;
+background:white;
+color:black;
+border:none;
+border-radius:12px;
+font-size:18px;
+cursor:pointer;
+}
+
+button:hover{
+opacity:.9;
+}
+
+#result{
+margin-top:25px;
+background:#1b1b1b;
+padding:20px;
+border-radius:15px;
+line-height:1.8;
+word-break:break-word;
+}
+
+h2{
+margin-top:0;
+}

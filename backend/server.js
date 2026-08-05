@@ -6,17 +6,15 @@ const app=express();
 
 app.use(cors());
 
-app.get("/",async(req,res)=>{
+app.get("/",(req,res)=>{
+res.json({
+status:"online"
+});
+});
 
-let ip=req.headers["x-forwarded-for"]||req.socket.remoteAddress;
+app.get("/ip/:ip",async(req,res)=>{
 
-if(ip.includes(",")){
-ip=ip.split(",")[0].trim();
-}
-
-if(ip.startsWith("::ffff:")){
-ip=ip.replace("::ffff:","");
-}
+const ip=req.params.ip;
 
 try{
 
@@ -24,11 +22,7 @@ const response=await axios.get(`https://ipwho.is/${ip}`);
 
 const data=response.data;
 
-const now=new Date().toLocaleString("ru-RU",{
-timeZone:"UTC"
-});
-
-console.log(`[${now}] ${data.country} ${ip}`);
+console.log(`[${new Date().toLocaleString()}] ${data.country} ${data.ip}`);
 
 res.json(data);
 
