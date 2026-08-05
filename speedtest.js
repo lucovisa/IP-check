@@ -10,42 +10,14 @@
 const speedStart = document.getElementById("speedStart");
 const speedResult = document.getElementById("speedResult");
 
-function getVideoQuality(speed) {
-  if (speed < 5) return "360p";
-  if (speed < 10) return "720p";
-  if (speed < 25) return "1080p";
-  if (speed < 50) return "1440p";
-  return "4K";
-}
-
 function getOverallQuality(ping, download, upload) {
-  let score = 0;
-  if (ping < 30) score += 3;
-  else if (ping < 80) score += 2;
-  else if (ping < 150) score += 1;
-  else score += 0;
+  const avgSpeed = (download + upload) / 2;
 
-  if (download >= 50) score += 3;
-  else if (download >= 25) score += 2;
-  else if (download >= 10) score += 1;
-  else score += 0;
-
-  if (upload >= 25) score += 3;
-  else if (upload >= 10) score += 2;
-  else if (upload >= 5) score += 1;
-  else score += 0;
-
-  if (score >= 7) return { text: "Отлично", color: "#00b894" };
-  if (score >= 5) return { text: "Хорошо", color: "#0984e3" };
-  if (score >= 3) return { text: "Средне", color: "#fdcb6e" };
-  return { text: "Плохо", color: "#d63031" };
-}
-
-function getPingQuality(ping) {
-  if (ping < 30) return { text: "Отлично", color: "#00b894" };
-  if (ping < 80) return { text: "Хорошо", color: "#0984e3" };
-  if (ping < 150) return { text: "Средне", color: "#fdcb6e" };
-  return { text: "Плохо", color: "#d63031" };
+  if (ping < 30 && avgSpeed >= 50) return { text: "Отлично", color: "#00b894", video: "4K" };
+  if (ping < 80 && avgSpeed >= 25) return { text: "Хорошо", color: "#0984e3", video: "1440p" };
+  if (ping < 150 && avgSpeed >= 10) return { text: "Средне", color: "#fdcb6e", video: "1080p" };
+  if (avgSpeed >= 5) return { text: "Средне", color: "#fdcb6e", video: "720p" };
+  return { text: "Плохо", color: "#d63031", video: "360p" };
 }
 
 speedStart.onclick = async () => {
@@ -53,87 +25,71 @@ speedStart.onclick = async () => {
 
   speedResult.innerHTML = `
     <div style="text-align:center;">
-      <div style="font-size:15px;margin-bottom:12px;color:#888;">Измерение задержки...</div>
+      <div style="font-size:15px;margin-bottom:12px;color:#888;">Измерение загрузки...</div>
+      <div style="display:flex;align-items:end;gap:2px;height:60px;margin-bottom:8px;" id="bars"></div>
       <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-        <div id="progress" style="width:0%;height:100%;background:#fdcb6e;border-radius:2px;transition:width 0.1s;"></div>
+        <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.08s;"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-top:3px;">
-        <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-      </div>
+      <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
     </div>
   `;
 
-  const progress = document.getElementById("progress");
-
   try {
-    progress.style.width = "25%";
+    const downloadResult = await measureDownload(12, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
+
+    speedResult.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#00b894;margin-bottom:15px;">Загрузка: ${downloadResult.toFixed(1)} Мбит/с</div>
+        <div style="font-size:15px;margin-bottom:8px;color:#888;">Измерение отдачи...</div>
+        <div style="display:flex;align-items:end;gap:2px;height:60px;margin-bottom:8px;" id="bars"></div>
+        <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
+          <div id="progress" style="width:0%;height:100%;background:#0984e3;border-radius:2px;transition:width 0.08s;"></div>
+        </div>
+        <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
+      </div>
+    `;
+
+    const uploadResult = await measureUpload(12, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
+
+    speedResult.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#00b894;margin-bottom:4px;">Загрузка: ${downloadResult.toFixed(1)} Мбит/с</div>
+        <div style="font-size:20px;font-weight:700;color:#0984e3;margin-bottom:15px;">Отдача: ${uploadResult.toFixed(1)} Мбит/с</div>
+        <div style="font-size:15px;margin-bottom:8px;color:#888;">Измерение задержки...</div>
+        <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow-hidden;">
+          <div id="progress" style="width:0%;height:100%;background:#fdcb6e;border-radius:2px;transition:width 0.3s;"></div>
+        </div>
+      </div>
+    `;
+
+    let ping = 0;
     const pingStart = performance.now();
     await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
     const pingEnd = performance.now();
-    const ping = Math.round(pingEnd - pingStart);
-    progress.style.width = "100%";
+    ping = Math.round(pingEnd - pingStart);
+
+    document.getElementById("progress").style.width = "100%";
 
     await new Promise(r => setTimeout(r, 500));
 
-    speedResult.innerHTML = `
-      <div style="text-align:center;">
-        <div style="font-size:14px;color:#888;margin-bottom:4px;">Задержка</div>
-        <div style="font-size:32px;font-weight:700;color:#fdcb6e;margin-bottom:15px;">${ping}<span style="font-size:16px;"> мс</span></div>
-        <div style="font-size:15px;margin-bottom:8px;">Измерение загрузки...</div>
-        <div style="display:flex;align-items:end;gap:2px;height:80px;margin-bottom:8px;" id="bars"></div>
-        <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-          <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.1s;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-top:3px;">
-          <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-        </div>
-        <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
-      </div>
-    `;
-
-    const downloadResult = await measureDownload(15, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
+    const overall = getOverallQuality(ping, downloadResult, uploadResult);
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
-        <div style="font-size:14px;color:#888;margin-bottom:4px;">Задержка</div>
-        <div style="font-size:32px;font-weight:700;color:#fdcb6e;margin-bottom:4px;">${ping}<span style="font-size:16px;"> мс</span></div>
-        <div style="font-size:22px;font-weight:700;color:#00b894;margin:8px 0 2px;">${downloadResult.toFixed(1)}<span style="font-size:14px;"> Мбит/с</span></div>
-        <div style="font-size:12px;color:#888;margin-bottom:15px;">Видео ${getVideoQuality(downloadResult)}</div>
-        <div style="font-size:15px;margin-bottom:8px;">Измерение отдачи...</div>
-        <div style="display:flex;align-items:end;gap:2px;height:80px;margin-bottom:8px;" id="bars"></div>
-        <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-          <div id="progress" style="width:0%;height:100%;background:#0984e3;border-radius:2px;transition:width 0.1s;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:#555;margin-top:3px;">
-          <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-        </div>
-        <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
-      </div>
-    `;
-
-    const uploadResult = await measureUpload(15, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
-
-    const overallQuality = getOverallQuality(ping, downloadResult, uploadResult);
-    const pingQuality = getPingQuality(ping);
-
-    speedResult.innerHTML = `
-      <div style="text-align:center;">
-        <div style="font-size:14px;color:#888;margin-bottom:8px;">Общая оценка</div>
-        <div style="font-size:36px;font-weight:700;color:${overallQuality.color};margin-bottom:15px;">${overallQuality.text}</div>
+        <div style="font-size:40px;font-weight:700;color:${overall.color};margin-bottom:8px;">${overall.text}</div>
+        <div style="font-size:16px;color:#888;margin-bottom:20px;">Можно смотреть видео в ${overall.video}</div>
         <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
           <div>
-            <div style="font-size:12px;color:#888;">Задержка</div>
-            <div style="font-size:24px;font-weight:700;color:${pingQuality.color};">${ping}<span style="font-size:12px;"> мс</span></div>
+            <div style="font-size:11px;color:#555;">Загрузка</div>
+            <div style="font-size:18px;font-weight:700;color:#00b894;">${downloadResult.toFixed(1)}<span style="font-size:11px;"> Мбит/с</span></div>
           </div>
           <div>
-            <div style="font-size:12px;color:#888;">Загрузка</div>
-            <div style="font-size:24px;font-weight:700;color:#00b894;">${downloadResult.toFixed(1)}<span style="font-size:12px;"> Мбит/с</span></div>
-            <div style="font-size:11px;color:#888;">Видео ${getVideoQuality(downloadResult)}</div>
+            <div style="font-size:11px;color:#555;">Отдача</div>
+            <div style="font-size:18px;font-weight:700;color:#0984e3;">${uploadResult.toFixed(1)}<span style="font-size:11px;"> Мбит/с</span></div>
           </div>
           <div>
-            <div style="font-size:12px;color:#888;">Отдача</div>
-            <div style="font-size:24px;font-weight:700;color:#0984e3;">${uploadResult.toFixed(1)}<span style="font-size:12px;"> Мбит/с</span></div>
-            <div style="font-size:11px;color:#888;">Видео ${getVideoQuality(uploadResult)}</div>
+            <div style="font-size:11px;color:#555;">Задержка</div>
+            <div style="font-size:18px;font-weight:700;color:#fdcb6e;">${ping}<span style="font-size:11px;"> мс</span></div>
           </div>
         </div>
       </div>
@@ -172,12 +128,12 @@ async function measureDownload(duration, progressBar, barsContainer, speedText) 
     speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
 
     const maxSpeed = Math.max(...speeds, 1);
-    const barHeight = (speed / maxSpeed) * 80;
+    const barHeight = (speed / maxSpeed) * 60;
     const bar = document.createElement("div");
     bar.style.cssText = `flex:1;background:#00b894;border-radius:1px 1px 0 0;height:${barHeight}px;min-width:2px;`;
     barsContainer.appendChild(bar);
 
-    if (barsContainer.children.length > 60) {
+    if (barsContainer.children.length > 50) {
       barsContainer.removeChild(barsContainer.firstChild);
     }
   }
@@ -220,12 +176,12 @@ async function measureUpload(duration, progressBar, barsContainer, speedText) {
     speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
 
     const maxSpeed = Math.max(...speeds, 1);
-    const barHeight = (speed / maxSpeed) * 80;
+    const barHeight = (speed / maxSpeed) * 60;
     const bar = document.createElement("div");
     bar.style.cssText = `flex:1;background:#0984e3;border-radius:1px 1px 0 0;height:${barHeight}px;min-width:2px;`;
     barsContainer.appendChild(bar);
 
-    if (barsContainer.children.length > 60) {
+    if (barsContainer.children.length > 50) {
       barsContainer.removeChild(barsContainer.firstChild);
     }
   }
