@@ -47,7 +47,7 @@ speedStart.onclick = async () => {
       </div>
     `;
 
-    const ping = await measurePing(5, 10, 20, document.getElementById("progress"), document.getElementById("pingValue"));
+    const ping = await measurePing(3, 8, 15, document.getElementById("progress"), document.getElementById("pingValue"));
 
     await new Promise(r => setTimeout(r, 600));
 
@@ -94,11 +94,14 @@ async function measurePing(warmupSec, waitSec, maxSec, progressBar, pingText) {
   async function pingLoop() {
     while (!testEnded) {
       const start = performance.now();
-      await fetch("https://ip-check-livid.vercel.app/api/ip?ping=1", { cache: "no-store" });
-      const end = performance.now();
-      const pingVal = Math.round(end - start);
-      pings.push(pingVal);
-      pings.sort((a, b) => a - b);
+      try {
+        await fetch("https://www.google.com/favicon.ico", { cache: "no-store", mode: "no-cors" });
+        const end = performance.now();
+        pings.push(Math.round(end - start));
+        pings.sort((a, b) => a - b);
+      } catch {
+        continue;
+      }
     }
   }
 

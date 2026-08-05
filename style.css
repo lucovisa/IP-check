@@ -93,11 +93,29 @@ h2 {
   cursor: help;
   margin-left: 6px;
   font-weight: bold;
+  position: relative;
 }
 
 .screen-help:hover {
   background: #555;
   color: white;
+}
+
+.screen-help:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: normal;
+  white-space: nowrap;
+  z-index: 999;
+  pointer-events: none;
 }
 
 input {
