@@ -12,20 +12,44 @@
 
 <h1>IP Checker</h1>
 
-<button id="check">Проверить мой IP</button>
-
-<div class="search">
-<input id="ipInput" placeholder="Введите IP">
-<button id="checkIp">Проверить IP</button>
-</div>
-
-<div id="result"></div>
-
-<button id="copyAll" style="display:none">Скопировать всё</button>
+<script src="script.js"></script>
+<script src="speedtest.js"></script>
 
 </div>
 
 <script src="script.js"></script>
 
-</body>
-</html>
+<div class="layout">
+
+<div class="sidebar">
+<h2>История</h2>
+<div id="history"></div>
+<button id="clearHistory">Очистить</button>
+</div>
+
+
+<div class="main">
+<h1>IP Checker</h1>
+
+<button id="check">Проверить мой IP</button>
+
+<div class="search">
+<input id="ipInput" placeholder="Введите IP">
+<button id="checkIp">Проверить</button>
+</div>
+
+<div id="result"></div>
+
+<button id="copyAll">Скопировать всё</button>
+<button id="downloadTxt">Скачать отчёт .txt</button>
+
+</div>
+
+
+<div class="speed">
+<h2>Speed Test</h2>
+<button id="speedStart">Начать тест</button>
+<div id="speedResult"></div>
+</div>
+
+</div>

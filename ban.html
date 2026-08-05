@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Слишком много запросов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #121212;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .card {
+            background: #1e1e1e;
+            border-left: 6px solid #d63031;
+            border-radius: 6px;
+            padding: 2.4rem 2.2rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .indicator {
+            width: 14px;
+            height: 14px;
+            background: #d63031;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(214, 48, 49, 0.25);
+        }
+
+        .error-code {
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.4px;
+            color: #9e9e9e;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 650;
+            color: #e0e0e0;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .red-text {
+            color: #d63031;
+            font-weight: 700;
+            font-size: 1.3rem;
+            display: block;
+            margin: 0.6rem 0 1.2rem;
+            letter-spacing: -0.2px;
+        }
+
+        .description {
+            color: #bdbdbd;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin: 1.2rem 0 1.6rem;
+            padding: 1rem 0;
+            border-top: 1px solid #333333;
+            border-bottom: 1px solid #333333;
+        }
+
+        .time {
+            font-weight: 700;
+            color: #e74c3c;
+            background: #2c1a1a;
+            padding: 0.1rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .footer-note {
+            margin-top: 1.2rem;
+            font-size: 0.85rem;
+            color: #757575;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .footer-note svg {
+            width: 15px;
+            height: 15px;
+            stroke: #d63031;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="status-row">
+            <span class="indicator"></span>
+            <span class="error-code">ошибка 429</span>
+        </div>
+
+        <h1>Слишком много запросов</h1>
+
+        <div class="red-text">
+            Вы слишком часто отправляли запросы
+        </div>
+
+        <div class="description">
+            Попробуйте снова через <span class="time">5 минут</span>.
+            Пожалуйста, снизьте частоту обращений к серверу.
+        </div>
+
+        <div class="footer-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            Это ограничение снимется автоматически
+        </div>
+    </div>
+</body>
+</html>
