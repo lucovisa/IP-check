@@ -66,9 +66,6 @@ return `
 <div class="info">
 <b>${name}</b>
 <span>${value}</span>
-<button onclick="copyText('${value}')">
-Копировать
-</button>
 </div>
 `;
 
