@@ -37,7 +37,7 @@ speedStart.onclick = async () => {
     const progressEl = document.getElementById("progress");
     const speedText = document.getElementById("currentSpeed");
 
-    const downloadResult = await measureDownload(40, progressEl, speedText);
+    const downloadResult = await measureDownload(100, progressEl, speedText);
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -135,7 +135,7 @@ async function measureDownload(sizeMB, progressBar, speedText) {
 }
 
 async function measureUpload(progressBar, speedText) {
-  const sizes = [2000000, 4000000, 6000000];
+  const sizes = [5000000, 10000000, 15000000];
   const speeds = [];
 
   for (let i = 0; i < sizes.length; i++) {
