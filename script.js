@@ -10,6 +10,7 @@
 const check = document.getElementById("check");
 const checkIp = document.getElementById("checkIp");
 const ipInput = document.getElementById("ipInput");
+const ipError = document.getElementById("ipError");
 const result = document.getElementById("result");
 const copyAll = document.getElementById("copyAll");
 const downloadTxt = document.getElementById("downloadTxt");
@@ -31,6 +32,14 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
+function isValidIP(ip) {
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+  const ipv6ShortRegex = /^([0-9a-fA-F]{1,4}:){1,7}:$/;
+  const ipv4MappedRegex = /^::ffff:(\d{1,3}\.){3}\d{1,3}$/;
+  return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ipv6ShortRegex.test(ip) || ipv4MappedRegex.test(ip);
+}
+
 async function loadIP(ip = "") {
   result.innerHTML = "Загрузка...";
 
@@ -45,10 +54,7 @@ async function loadIP(ip = "") {
     const data = await response.json();
 
     if (data.banned) {
-      localStorage.setItem(
-        "banUntil",
-        Date.now() + data.remaining * 1000
-      );
+      localStorage.setItem("banUntil", Date.now() + data.remaining * 1000);
       window.location.href = "ban.html";
       return;
     }
@@ -140,9 +146,19 @@ check.onclick = () => loadIP();
 checkIp.onclick = () => {
   const ip = ipInput.value.trim();
   if (ip) {
+    if (!isValidIP(ip)) {
+      ipError.classList.add("show");
+      setTimeout(() => ipError.classList.remove("show"), 2500);
+      return;
+    }
+    ipError.classList.remove("show");
     loadIP(ip);
   }
 };
+
+ipInput.addEventListener("input", () => {
+  ipError.classList.remove("show");
+});
 
 downloadTxt.onclick = () => {
   const blob = new Blob([currentData], {

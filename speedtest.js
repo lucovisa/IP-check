@@ -1,10 +1,17 @@
+(function () {
+  const banUntil = localStorage.getItem("banUntil");
+  if (banUntil && Date.now() < parseInt(banUntil)) {
+    if (!window.location.href.includes("ban.html")) {
+      window.location.href = "ban.html";
+    }
+  }
+})();
+
 const speedStart = document.getElementById("speedStart");
 const speedResult = document.getElementById("speedResult");
 
-let pingValues = [];
 let downloadValues = [];
 let uploadValues = [];
-let animationId = null;
 
 function drawGauge(canvas, value, max, color, label) {
   const ctx = canvas.getContext("2d");
@@ -19,7 +26,7 @@ function drawGauge(canvas, value, max, color, label) {
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, 2.25 * Math.PI);
   ctx.strokeStyle = "#1b1b1b";
-  ctx.lineWidth = 12;
+  ctx.lineWidth = 10;
   ctx.stroke();
 
   const angle = 0.75 * Math.PI + (Math.min(value, max) / max) * 1.5 * Math.PI;
@@ -27,20 +34,20 @@ function drawGauge(canvas, value, max, color, label) {
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, angle);
   ctx.strokeStyle = color;
-  ctx.lineWidth = 12;
+  ctx.lineWidth = 10;
   ctx.lineCap = "round";
   ctx.stroke();
 
   ctx.fillStyle = "white";
-  ctx.font = "bold 20px Arial";
+  ctx.font = "bold 16px Arial";
   ctx.textAlign = "center";
-  ctx.fillText(label, centerX, centerY - 10);
+  ctx.fillText(label, centerX, centerY - 8);
 
-  ctx.font = "bold 28px Arial";
-  ctx.fillText(value.toFixed(1), centerX, centerY + 25);
+  ctx.font = "bold 24px Arial";
+  ctx.fillText(value.toFixed(1), centerX, centerY + 22);
 
-  ctx.font = "14px Arial";
-  ctx.fillText("Мбит/с", centerX, centerY + 48);
+  ctx.font = "12px Arial";
+  ctx.fillText("Мбит/с", centerX, centerY + 42);
 }
 
 function drawChart(canvas, values, color) {
@@ -66,13 +73,6 @@ function drawChart(canvas, values, color) {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(0, h - (values[0] / maxVal) * h);
-
-  for (let i = 1; i < values.length; i++) {
-    ctx.lineTo(i * stepX, h - (values[i] / maxVal) * h);
-  }
-
   ctx.lineTo((values.length - 1) * stepX, h);
   ctx.lineTo(0, h);
   ctx.closePath();
@@ -97,21 +97,16 @@ speedStart.onclick = async () => {
   speedResult.innerHTML = `
     <div style="text-align:center;">
       <div style="font-size:18px;margin-bottom:20px;">Подготовка...</div>
-      <canvas id="gaugePing" width="200" height="200" style="display:none;"></canvas>
       <div style="display:flex;gap:20px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
         <div>
-          <div style="font-size:14px;color:#888;margin-bottom:5px;">Пинг</div>
-          <canvas id="gaugeDownload" width="140" height="140"></canvas>
-        </div>
-        <div>
           <div style="font-size:14px;color:#888;margin-bottom:5px;">Загрузка</div>
-          <canvas id="gaugeUpload" width="140" height="140"></canvas>
+          <canvas id="gaugeDownload" width="140" height="140"></canvas>
+          <canvas id="chartDownload" width="220" height="100" style="margin-top:8px;"></canvas>
         </div>
         <div>
           <div style="font-size:14px;color:#888;margin-bottom:5px;">Отдача</div>
-          <canvas id="chartPing" width="400" height="120" style="display:none;"></canvas>
-          <canvas id="chartDownload" width="400" height="120"></canvas>
-          <canvas id="chartUpload" width="400" height="120"></canvas>
+          <canvas id="gaugeUpload" width="140" height="140"></canvas>
+          <canvas id="chartUpload" width="220" height="100" style="margin-top:8px;"></canvas>
         </div>
       </div>
     </div>
@@ -122,7 +117,6 @@ speedStart.onclick = async () => {
   const chartDownload = document.getElementById("chartDownload");
   const chartUpload = document.getElementById("chartUpload");
 
-  pingValues = [];
   downloadValues = [];
   uploadValues = [];
 
@@ -130,39 +124,42 @@ speedStart.onclick = async () => {
   drawGauge(gaugeUpload, 0, 100, "#888", "Отдача");
 
   try {
-    const pingResult = await measurePing();
+    const pingStart = performance.now();
+    await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
+    const pingEnd = performance.now();
+    const ping = Math.round(pingEnd - pingStart);
+
     const downloadResult = await measureDownload(downloadValues, gaugeDownload, chartDownload);
     const uploadResult = await measureUpload(uploadValues, gaugeUpload, chartUpload);
 
-    const pingQuality = pingResult < 50 ? "#00b894" : pingResult < 150 ? "#fdcb6e" : "#d63031";
+    const pingQuality = ping < 50 ? "#00b894" : ping < 150 ? "#fdcb6e" : "#d63031";
     const downloadQuality = getQuality(downloadResult);
     const uploadQuality = getQuality(uploadResult);
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
-        <div style="display:flex;gap:30px;justify-content:center;flex-wrap:wrap;margin-bottom:25px;">
+        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
           <div>
-            <div style="font-size:13px;color:#888;margin-bottom:6px;">Пинг</div>
-            <div style="font-size:36px;font-weight:700;color:${pingQuality};">${pingResult}<span style="font-size:18px;"> мс</span></div>
+            <div style="font-size:12px;color:#888;margin-bottom:4px;">Пинг</div>
+            <div style="font-size:28px;font-weight:700;color:${pingQuality};">${ping}<span style="font-size:14px;"> мс</span></div>
           </div>
           <div>
-            <div style="font-size:13px;color:#888;margin-bottom:6px;">Загрузка</div>
-            <div style="font-size:36px;font-weight:700;color:${downloadQuality.color};">${downloadResult.toFixed(1)}<span style="font-size:18px;"> Мбит/с</span></div>
-            <div style="font-size:14px;color:${downloadQuality.color};">${downloadQuality.text}</div>
+            <div style="font-size:12px;color:#888;margin-bottom:4px;">Загрузка</div>
+            <div style="font-size:28px;font-weight:700;color:${downloadQuality.color};">${downloadResult.toFixed(1)}<span style="font-size:14px;"> Мбит/с</span></div>
+            <div style="font-size:12px;color:${downloadQuality.color};">${downloadQuality.text}</div>
           </div>
           <div>
-            <div style="font-size:13px;color:#888;margin-bottom:6px;">Отдача</div>
-            <div style="font-size:36px;font-weight:700;color:${uploadQuality.color};">${uploadResult.toFixed(1)}<span style="font-size:18px;"> Мбит/с</span></div>
-            <div style="font-size:14px;color:${uploadQuality.color};">${uploadQuality.text}</div>
+            <div style="font-size:12px;color:#888;margin-bottom:4px;">Отдача</div>
+            <div style="font-size:28px;font-weight:700;color:${uploadQuality.color};">${uploadResult.toFixed(1)}<span style="font-size:14px;"> Мбит/с</span></div>
+            <div style="font-size:12px;color:${uploadQuality.color};">${uploadQuality.text}</div>
           </div>
         </div>
-        <canvas id="finalChart" width="500" height="200"></canvas>
+        <canvas id="finalChart" width="400" height="160"></canvas>
       </div>
     `;
 
     drawFinalChart(
       document.getElementById("finalChart"),
-      pingValues,
       downloadValues,
       uploadValues,
       downloadQuality.color,
@@ -177,19 +174,6 @@ speedStart.onclick = async () => {
     speedStart.disabled = false;
   }
 };
-
-async function measurePing() {
-  const times = [];
-  for (let i = 0; i < 5; i++) {
-    const start = performance.now();
-    await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
-    const end = performance.now();
-    times.push(end - start);
-    pingValues.push(Math.round(end - start));
-  }
-  times.sort((a, b) => a - b);
-  return Math.round(times[Math.floor(times.length / 2)]);
-}
 
 async function measureDownload(values, gauge, chart) {
   const fileSizes = [1, 5, 10];
@@ -215,7 +199,7 @@ async function measureDownload(values, gauge, chart) {
     drawChart(chart, values, "#00b894");
 
     if (count < fileSizes.length) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 400));
     }
   }
 
@@ -235,11 +219,15 @@ async function measureUpload(values, gauge, chart) {
 
     const start = performance.now();
 
-    await fetch("https://speed.cloudflare.com/__up", {
-      method: "POST",
-      cache: "no-store",
-      body: data
-    });
+    try {
+      await fetch("https://speed.cloudflare.com/__up", {
+        method: "POST",
+        cache: "no-store",
+        body: data
+      });
+    } catch {
+      return 0;
+    }
 
     const end = performance.now();
     const seconds = (end - start) / 1000;
@@ -254,14 +242,14 @@ async function measureUpload(values, gauge, chart) {
     drawChart(chart, values, "#0984e3");
 
     if (count < sizes.length) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 400));
     }
   }
 
   return totalSpeed / count;
 }
 
-function drawFinalChart(canvas, ping, download, upload, downloadColor, uploadColor) {
+function drawFinalChart(canvas, download, upload, downloadColor, uploadColor) {
   const ctx = canvas.getContext("2d");
   const w = canvas.width;
   const h = canvas.height;
@@ -273,11 +261,10 @@ function drawFinalChart(canvas, ping, download, upload, downloadColor, uploadCol
   const totalPoints = Math.max(download.length, upload.length);
   const stepX = w / (totalPoints - 1 || 1);
 
-  ctx.beginPath();
   ctx.strokeStyle = "#333";
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 5; i++) {
-    const y = (h / 4) * i;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 4; i++) {
+    const y = (h / 3) * i;
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
@@ -291,7 +278,7 @@ function drawFinalChart(canvas, ping, download, upload, downloadColor, uploadCol
       ctx.lineTo(i * stepX, h - (download[i] / maxVal) * h);
     }
     ctx.strokeStyle = downloadColor;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
   }
 
@@ -302,19 +289,22 @@ function drawFinalChart(canvas, ping, download, upload, downloadColor, uploadCol
       ctx.lineTo(i * stepX, h - (upload[i] / maxVal) * h);
     }
     ctx.strokeStyle = uploadColor;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
   }
 
   ctx.fillStyle = "white";
-  ctx.font = "11px Arial";
+  ctx.font = "10px Arial";
   ctx.textAlign = "right";
-  ctx.fillText(maxVal.toFixed(0) + " Мбит/с", w - 5, 15);
+  ctx.fillText(maxVal.toFixed(0), w - 5, 14);
   ctx.fillText("0", w - 5, h - 5);
 
   ctx.fillStyle = downloadColor;
   ctx.textAlign = "left";
-  ctx.fillText("Загрузка", 10, 20);
+  ctx.fillRect(10, 10, 12, 3);
+  ctx.fillText("Загрузка", 26, 14);
+
   ctx.fillStyle = uploadColor;
-  ctx.fillText("Отдача", 10, 40);
+  ctx.fillRect(10, 22, 12, 3);
+  ctx.fillText("Отдача", 26, 26);
 }

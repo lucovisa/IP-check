@@ -1,3 +1,16 @@
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
 body {
   margin: 0;
   background: #090909;
@@ -88,6 +101,28 @@ input::placeholder {
   color: #888;
 }
 
+.input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.ip-error {
+  display: none;
+  position: absolute;
+  top: -28px;
+  left: 0;
+  background: #d63031;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ip-error.show {
+  display: block;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
@@ -148,13 +183,19 @@ input::placeholder {
   white-space: nowrap;
 }
 
-#copyAll,
-#downloadTxt {
+.actions-row {
+  display: flex;
+  gap: 10px;
   margin-top: 10px;
 }
 
+.actions-row button {
+  flex: 1;
+}
+
+#copyAll,
 #downloadTxt {
-  margin-left: 10px;
+  display: none;
 }
 
 @media (max-width: 900px) {
@@ -205,7 +246,7 @@ input::placeholder {
     font-size: 15px;
   }
 
-  #downloadTxt {
-    margin-left: 0;
+  .actions-row {
+    flex-direction: column;
   }
 }

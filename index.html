@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IP Checker</title>
+  <link rel="icon" type="image/png" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,14 +25,19 @@
     <button id="check">Проверить мой IP</button>
 
     <div class="search">
-      <input id="ipInput" placeholder="Введите IP">
+      <div class="input-wrapper">
+        <input id="ipInput" placeholder="Введите IP">
+        <div class="ip-error" id="ipError">Неверный IP-адрес</div>
+      </div>
       <button id="checkIp">Проверить</button>
     </div>
 
     <div id="result"></div>
 
-    <button id="copyAll" style="display:none">Скопировать всё</button>
-    <button id="downloadTxt" style="display:none">Скачать отчёт .txt</button>
+    <div class="actions-row">
+      <button id="copyAll" style="display:none">Скопировать всё</button>
+      <button id="downloadTxt" style="display:none">Скачать отчёт .txt</button>
+    </div>
   </div>
 
   <div class="speed">
