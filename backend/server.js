@@ -6,30 +6,25 @@ const app=express();
 
 app.use(cors());
 
-app.get("/",(req,res)=>{
-res.json({
-status:"online"
-});
-});
-
-app.get("/ip/:ip",async(req,res)=>{
-
-const ip=req.params.ip;
+app.get("/",async(req,res)=>{
 
 try{
 
+const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
+
 const response=await axios.get(`https://ipwho.is/${ip}`);
 
-const data=response.data;
+console.log(`[${new Date().toLocaleString()}] ${response.data.country} ${response.data.ip}`);
 
-console.log(`[${new Date().toLocaleString()}] ${data.country} ${data.ip}`);
+res.json(response.data);
 
-res.json(data);
+}catch(e){
 
-}catch{
+console.log(e.message);
 
 res.status(500).json({
-success:false
+success:false,
+error:e.message
 });
 
 }
