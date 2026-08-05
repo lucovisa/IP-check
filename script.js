@@ -7,13 +7,13 @@ result.innerHTML="Загрузка...";
 
 try{
 
-const response=await fetch("https://ip-check-lh5l.onrender.com/");
+const response=await fetch("https://ip-check-livid.vercel.app/api/ip");
 const data=await response.json();
 
 result.innerHTML=`
 <h2>${data.ip}</h2>
 
-<b>Страна:</b> ${data.country}<br>
+<b>Страна:</b> ${data.country} ${data.flag.emoji}<br>
 <b>Регион:</b> ${data.region}<br>
 <b>Город:</b> ${data.city}<br>
 <b>Провайдер:</b> ${data.connection.isp}<br>
@@ -23,7 +23,7 @@ result.innerHTML=`
 <b>Координаты:</b> ${data.latitude}, ${data.longitude}
 `;
 
-}catch(e){
+}catch{
 
 result.innerHTML="Ошибка подключения.";
 
