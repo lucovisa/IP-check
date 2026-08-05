@@ -6,6 +6,11 @@ const app=express();
 
 app.use(cors());
 
+app.get("/test",(req,res)=>{
+console.log("TEST заход:",req.ip);
+res.send("OK");
+});
+
 app.get("/",async(req,res)=>{
 
 const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
