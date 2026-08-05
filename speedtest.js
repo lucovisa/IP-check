@@ -34,7 +34,7 @@ speedStart.onclick = async () => {
   `;
 
   try {
-    const downloadResult = await measureDownload(20, document.getElementById("progress"), document.getElementById("currentSpeed"));
+    const downloadResult = await measureDownload(25, document.getElementById("progress"), document.getElementById("currentSpeed"));
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -47,7 +47,7 @@ speedStart.onclick = async () => {
       </div>
     `;
 
-    const uploadResult = await measureUpload(15, document.getElementById("progress"), document.getElementById("currentSpeed"));
+    const uploadResult = await measureUpload(20, document.getElementById("progress"), document.getElementById("currentSpeed"));
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -60,15 +60,7 @@ speedStart.onclick = async () => {
       </div>
     `;
 
-    const pingProgress = document.getElementById("progress");
-    pingProgress.style.width = "50%";
-
-    const pingStart = performance.now();
-    await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
-    const pingEnd = performance.now();
-    const ping = Math.round(pingEnd - pingStart);
-
-    pingProgress.style.width = "100%";
+    const ping = await measurePing(document.getElementById("progress"));
 
     await new Promise(r => setTimeout(r, 400));
 
@@ -104,14 +96,34 @@ speedStart.onclick = async () => {
   }
 };
 
+async function measurePing(progressBar) {
+  const pings = [];
+
+  for (let i = 0; i < 10; i++) {
+    const start = performance.now();
+    await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
+    const end = performance.now();
+    pings.push(Math.round(end - start));
+
+    progressBar.style.width = ((i + 1) / 10) * 100 + "%";
+
+    if (i < 9) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+
+  pings.sort((a, b) => a - b);
+  return pings[Math.floor(pings.length / 2)];
+}
+
 async function measureDownload(durationSec, progressBar, speedText) {
   const speeds = [];
   const startTime = performance.now();
   let totalBytes = 0;
-  const warmupSec = 3;
+  const warmupSec = 5;
 
   while (performance.now() - startTime < durationSec * 1000) {
-    const file = `https://speed.cloudflare.com/__down?bytes=1000000&r=${Math.random()}`;
+    const file = `https://speed.cloudflare.com/__down?bytes=2000000&r=${Math.random()}`;
     const reqStart = performance.now();
 
     const response = await fetch(file, { cache: "no-store" });
@@ -119,13 +131,13 @@ async function measureDownload(durationSec, progressBar, speedText) {
 
     const reqEnd = performance.now();
     const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (1 / seconds) * 8;
+    const speed = (2 / seconds) * 8;
 
     const elapsed = (performance.now() - startTime) / 1000;
 
     if (elapsed > warmupSec) {
       speeds.push(speed);
-      totalBytes += 1000000;
+      totalBytes += 2000000;
     }
 
     const percent = Math.min((elapsed / durationSec) * 100, 100);
@@ -146,11 +158,11 @@ async function measureUpload(durationSec, progressBar, speedText) {
   const speeds = [];
   const startTime = performance.now();
   let totalBytes = 0;
-  const warmupSec = 3;
+  const warmupSec = 5;
 
   while (performance.now() - startTime < durationSec * 1000) {
-    const data = new Uint8Array(500000);
-    for (let j = 0; j < 500000; j++) {
+    const data = new Uint8Array(1000000);
+    for (let j = 0; j < 1000000; j++) {
       data[j] = Math.floor(Math.random() * 256);
     }
 
@@ -168,13 +180,13 @@ async function measureUpload(durationSec, progressBar, speedText) {
 
     const reqEnd = performance.now();
     const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (0.5 / seconds) * 8;
+    const speed = (1 / seconds) * 8;
 
     const elapsed = (performance.now() - startTime) / 1000;
 
     if (elapsed > warmupSec) {
       speeds.push(speed);
-      totalBytes += 500000;
+      totalBytes += 1000000;
     }
 
     const percent = Math.min((elapsed / durationSec) * 100, 100);
