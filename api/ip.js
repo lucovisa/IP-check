@@ -12,7 +12,11 @@ return res.status(200).end();
 
 try{
 
-const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
+let ip=req.query.ip;
+
+if(!ip){
+ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
+}
 
 console.log(`[${new Date().toLocaleString()}] IP: ${ip}`);
 
@@ -20,9 +24,11 @@ const response=await axios.get(`https://ipwho.is/${ip}`,{
 timeout:5000
 });
 
-console.log(`${response.data.country} ${response.data.ip}`);
+const data=response.data;
 
-res.status(200).json(response.data);
+console.log(`${data.country} ${data.ip}`);
+
+res.status(200).json(data);
 
 }catch(e){
 
