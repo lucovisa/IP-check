@@ -9,6 +9,13 @@ const clearHistory = document.getElementById("clearHistory");
 
 let currentData = "";
 
+Object.defineProperty(window, "pleasebanme", {
+  set() {
+    localStorage.setItem("banUntil", Date.now() + 300000);
+    window.location.href = "ban.html";
+  }
+});
+
 function escapeHTML(str) {
   const div = document.createElement("div");
   div.textContent = str;
