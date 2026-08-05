@@ -32,7 +32,7 @@ speedStart.onclick = async () => {
   `;
 
   try {
-    const downloadResult = await measureDownload(15, document.getElementById("progress"), document.getElementById("currentSpeed"));
+    const downloadResult = await measureDownload(5, 10, 30, document.getElementById("progress"), document.getElementById("currentSpeed"));
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -87,6 +87,8 @@ async function measurePing(progressBar, pingText) {
     pings.push(Math.round(end - start));
 
     progressBar.style.width = ((i + 1) / 10) * 100 + "%";
+
+    pings.sort((a, b) => a - b);
     pingText.textContent = pings[Math.floor(pings.length / 2)] + " мс";
 
     if (i < 9) {
@@ -98,22 +100,23 @@ async function measurePing(progressBar, pingText) {
   return pings[Math.floor(pings.length / 2)];
 }
 
-async function measureDownload(durationSec, progressBar, speedText) {
+async function measureDownload(warmupSec, waitSec, maxSec, progressBar, speedText) {
   const startTime = performance.now();
   let totalBytes = 0;
+  let peakSpeed = 0;
+  let peakTime = startTime;
+  let testEnded = false;
 
   async function downloadStream(id) {
-    while (performance.now() - startTime < durationSec * 1000) {
+    while (!testEnded) {
       const file = `https://speed.cloudflare.com/__down?bytes=10000000&r=${Math.random()}`;
       try {
         const response = await fetch(file, { cache: "no-store" });
         const reader = response.body.getReader();
-        while (true) {
+        while (!testEnded) {
           const { done, value } = await reader.read();
           if (done) break;
           totalBytes += value.length;
-          const elapsed = (performance.now() - startTime) / 1000;
-          if (elapsed >= durationSec) break;
         }
       } catch {
         continue;
@@ -128,18 +131,37 @@ async function measureDownload(durationSec, progressBar, speedText) {
 
   const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
-    const percent = Math.min((elapsed / durationSec) * 100, 100);
-    progressBar.style.width = percent + "%";
     const totalMB = totalBytes / 1000000;
-    const speed = (totalMB / Math.max(elapsed, 0.1)) * 8;
-    speedText.textContent = speed.toFixed(1) + " Мбит/с";
-  }, 150);
+    const currentSpeed = (totalMB / Math.max(elapsed, 0.1)) * 8;
+
+    progressBar.style.width = Math.min((elapsed / maxSec) * 100, 100) + "%";
+    speedText.textContent = currentSpeed.toFixed(1) + " Мбит/с";
+
+    if (elapsed > warmupSec) {
+      if (currentSpeed > peakSpeed) {
+        peakSpeed = currentSpeed;
+        peakTime = performance.now();
+      }
+    }
+
+    if (peakSpeed > 0 && elapsed > warmupSec) {
+      const timeSincePeak = (performance.now() - peakTime) / 1000;
+      if (timeSincePeak > waitSec && currentSpeed < peakSpeed) {
+        testEnded = true;
+      }
+    }
+
+    if (elapsed >= maxSec) {
+      testEnded = true;
+    }
+  }, 200);
 
   await Promise.race([
     Promise.all(workers),
-    new Promise(r => setTimeout(r, durationSec * 1000))
+    new Promise(r => setTimeout(r, maxSec * 1000))
   ]);
 
+  testEnded = true;
   clearInterval(updateInterval);
 
   const totalTime = (performance.now() - startTime) / 1000;
