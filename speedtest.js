@@ -10,6 +10,14 @@
 const speedStart = document.getElementById("speedStart");
 const speedResult = document.getElementById("speedResult");
 
+const CDN_FILES = [
+  "https://speed.cloudflare.com/__down?bytes=10000000",
+  "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js",
+  "https://code.jquery.com/jquery-3.7.1.min.js",
+  "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+];
+
 function getOverallQuality(ping, download) {
   if (ping < 30 && download >= 50) return { text: "Отлично", color: "#00b894", video: "4K" };
   if (ping < 80 && download >= 25) return { text: "Хорошо", color: "#0984e3", video: "1440p" };
@@ -100,16 +108,25 @@ async function measureDownload(durationSec, progressBar, speedText) {
   const startTime = performance.now();
   let totalBytes = 0;
 
-  async function downloadStream() {
+  async function downloadFromCDN(url) {
     while (performance.now() - startTime < durationSec * 1000) {
-      const file = `https://speed.cloudflare.com/__down?bytes=5000000&r=${Math.random()}`;
-      const response = await fetch(file, { cache: "no-store" });
-      await response.arrayBuffer();
-      totalBytes += 5000000;
+      try {
+        const response = await fetch(url + "&r=" + Math.random(), { cache: "no-store" });
+        const reader = response.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          totalBytes += value.length;
+          const elapsed = (performance.now() - startTime) / 1000;
+          if (elapsed >= durationSec) break;
+        }
+      } catch {
+        continue;
+      }
     }
   }
 
-  const workers = [downloadStream(), downloadStream(), downloadStream(), downloadStream()];
+  const workers = CDN_FILES.map(url => downloadFromCDN(url));
 
   const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
