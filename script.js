@@ -1,3 +1,12 @@
+(function () {
+  const banUntil = localStorage.getItem("banUntil");
+  if (banUntil && Date.now() < parseInt(banUntil)) {
+    if (!window.location.href.includes("ban.html")) {
+      window.location.href = "ban.html";
+    }
+  }
+})();
+
 const check = document.getElementById("check");
 const checkIp = document.getElementById("checkIp");
 const ipInput = document.getElementById("ipInput");
