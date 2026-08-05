@@ -26,30 +26,46 @@ speedStart.onclick = async () => {
   speedResult.innerHTML = `
     <div style="text-align:center;">
       <div style="font-size:15px;margin-bottom:12px;color:#888;">Измерение загрузки...</div>
-      <div style="display:flex;align-items:end;gap:2px;height:60px;margin-bottom:8px;" id="bars"></div>
       <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-        <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.08s;"></div>
+        <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.3s;"></div>
       </div>
-      <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
     </div>
   `;
 
   try {
-    const downloadResult = await measureDownload(12, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
+    const progressEl = document.getElementById("progress");
+    progressEl.style.width = "10%";
+
+    const downloadStart = performance.now();
+    const response = await fetch("https://speed.cloudflare.com/__down?bytes=10000000", { cache: "no-store" });
+
+    const reader = response.body.getReader();
+    const contentLength = +response.headers.get("Content-Length");
+    let received = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.length;
+      const percent = (received / contentLength) * 100;
+      progressEl.style.width = percent + "%";
+    }
+
+    const downloadEnd = performance.now();
+    const downloadSeconds = (downloadEnd - downloadStart) / 1000;
+    const downloadResult = (10 / downloadSeconds) * 8;
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
         <div style="font-size:20px;font-weight:700;color:#00b894;margin-bottom:15px;">Загрузка: ${downloadResult.toFixed(1)} Мбит/с</div>
         <div style="font-size:15px;margin-bottom:8px;color:#888;">Измерение отдачи...</div>
-        <div style="display:flex;align-items:end;gap:2px;height:60px;margin-bottom:8px;" id="bars"></div>
         <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-          <div id="progress" style="width:0%;height:100%;background:#0984e3;border-radius:2px;transition:width 0.08s;"></div>
+          <div id="progress" style="width:0%;height:100%;background:#0984e3;border-radius:2px;transition:width 0.3s;"></div>
         </div>
-        <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
       </div>
     `;
 
-    const uploadResult = await measureUpload(12, document.getElementById("progress"), document.getElementById("bars"), document.getElementById("currentSpeed"));
+    const uploadResult = await measureUpload(document.getElementById("progress"));
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -62,15 +78,17 @@ speedStart.onclick = async () => {
       </div>
     `;
 
-    let ping = 0;
+    const pingProgress = document.getElementById("progress");
+    pingProgress.style.width = "50%";
+
     const pingStart = performance.now();
     await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
     const pingEnd = performance.now();
-    ping = Math.round(pingEnd - pingStart);
+    const ping = Math.round(pingEnd - pingStart);
 
-    document.getElementById("progress").style.width = "100%";
+    pingProgress.style.width = "100%";
 
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 400));
 
     const overall = getOverallQuality(ping, downloadResult, uploadResult);
 
@@ -104,54 +122,17 @@ speedStart.onclick = async () => {
   }
 };
 
-async function measureDownload(duration, progressBar, barsContainer, speedText) {
+async function measureUpload(progressBar) {
+  const sizes = [1000000, 2000000, 3000000];
   const speeds = [];
-  const startTime = performance.now();
 
-  while (performance.now() - startTime < duration * 1000) {
-    const file = `https://speed.cloudflare.com/__down?bytes=500000&r=${Math.random()}`;
-    const reqStart = performance.now();
-
-    const response = await fetch(file, { cache: "no-store" });
-    await response.arrayBuffer();
-
-    const reqEnd = performance.now();
-    const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (0.5 / seconds) * 8;
-    speeds.push(speed);
-
-    const elapsed = (performance.now() - startTime) / 1000;
-    const percent = Math.min((elapsed / duration) * 100, 100);
-    progressBar.style.width = percent + "%";
-
-    const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-    speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-
-    const maxSpeed = Math.max(...speeds, 1);
-    const barHeight = (speed / maxSpeed) * 60;
-    const bar = document.createElement("div");
-    bar.style.cssText = `flex:1;background:#00b894;border-radius:1px 1px 0 0;height:${barHeight}px;min-width:2px;`;
-    barsContainer.appendChild(bar);
-
-    if (barsContainer.children.length > 50) {
-      barsContainer.removeChild(barsContainer.firstChild);
-    }
-  }
-
-  return speeds.reduce((a, b) => a + b, 0) / speeds.length;
-}
-
-async function measureUpload(duration, progressBar, barsContainer, speedText) {
-  const speeds = [];
-  const startTime = performance.now();
-
-  while (performance.now() - startTime < duration * 1000) {
-    const data = new Uint8Array(200000);
-    for (let i = 0; i < 200000; i++) {
-      data[i] = Math.floor(Math.random() * 256);
+  for (let i = 0; i < sizes.length; i++) {
+    const data = new Uint8Array(sizes[i]);
+    for (let j = 0; j < sizes[i]; j++) {
+      data[j] = Math.floor(Math.random() * 256);
     }
 
-    const reqStart = performance.now();
+    const start = performance.now();
 
     try {
       await fetch("https://speed.cloudflare.com/__up", {
@@ -163,28 +144,19 @@ async function measureUpload(duration, progressBar, barsContainer, speedText) {
       continue;
     }
 
-    const reqEnd = performance.now();
-    const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (0.2 / seconds) * 8;
+    const end = performance.now();
+    const seconds = (end - start) / 1000;
+    const mb = sizes[i] / 1000000;
+    const speed = (mb / seconds) * 8;
     speeds.push(speed);
 
-    const elapsed = (performance.now() - startTime) / 1000;
-    const percent = Math.min((elapsed / duration) * 100, 100);
-    progressBar.style.width = percent + "%";
+    progressBar.style.width = ((i + 1) / sizes.length) * 100 + "%";
 
-    const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-    speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-
-    const maxSpeed = Math.max(...speeds, 1);
-    const barHeight = (speed / maxSpeed) * 60;
-    const bar = document.createElement("div");
-    bar.style.cssText = `flex:1;background:#0984e3;border-radius:1px 1px 0 0;height:${barHeight}px;min-width:2px;`;
-    barsContainer.appendChild(bar);
-
-    if (barsContainer.children.length > 50) {
-      barsContainer.removeChild(barsContainer.firstChild);
+    if (i < sizes.length - 1) {
+      await new Promise(r => setTimeout(r, 300));
     }
   }
 
+  if (speeds.length === 0) return 0;
   return speeds.reduce((a, b) => a + b, 0) / speeds.length;
 }
