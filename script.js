@@ -40,6 +40,12 @@ function isValidIP(ip) {
   return ipv4Regex.test(ip) || ipv6Regex.test(ip) || ipv6ShortRegex.test(ip) || ipv4MappedRegex.test(ip);
 }
 
+function getScreenResolution() {
+  const width = window.screen.width * window.devicePixelRatio;
+  const height = window.screen.height * window.devicePixelRatio;
+  return `${Math.round(width)}×${Math.round(height)}`;
+}
+
 async function loadIP(ip = "") {
   result.innerHTML = "Загрузка...";
 
@@ -67,6 +73,8 @@ async function loadIP(ip = "") {
     const timezone = data.timezone || {};
     const flag = data.flag || {};
 
+    const screenRes = getScreenResolution();
+
     currentData = `IP: ${data.ip || ""}
 Страна: ${data.country || ""}
 Регион: ${data.region || ""}
@@ -80,6 +88,7 @@ ASN: ${connection.asn || ""}
 ОС: ${device.os || ""}
 Версия браузера: ${device.browserVersion || ""}
 Язык: ${device.language || ""}
+Экран: ${screenRes}
 User-Agent: ${device.userAgent || ""}
 DNS: ${dns.hostname || ""}`;
 
@@ -102,6 +111,7 @@ DNS: ${dns.hostname || ""}`;
       ${field("ОС", device.os)}
       ${field("Версия браузера", device.browserVersion)}
       ${field("Язык", device.language)}
+      ${field("Экран монитора", `${screenRes} <span class=\"screen-help\" title=\"Мы определили разрешение экрана с учетом плотности пикселей (retina), но без учета масштаба (zoom) в браузере. Если масштаб в браузере отличен от 100%, то разрешение может быть измерено неверно.\">?</span>`)}
       ${field("User-Agent", device.userAgent)}
       ${field("DNS", dns.hostname)}
       <button onclick="mapOpen('${data.latitude || 0}','${data.longitude || 0}')">
@@ -119,8 +129,8 @@ DNS: ${dns.hostname || ""}`;
 function field(name, value) {
   return `
     <div class="info">
-      <b>${escapeHTML(name || "")}</b>
-      <span>${value || ""}</span>
+      <b>${name}</b>
+      <span>${value}</span>
     </div>
   `;
 }

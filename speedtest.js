@@ -10,11 +10,13 @@
 const speedStart = document.getElementById("speedStart");
 const speedResult = document.getElementById("speedResult");
 
-function getOverallQuality(ping, download) {
-  if (ping < 30 && download >= 50) return { text: "Отлично", color: "#00b894", video: "4K" };
-  if (ping < 80 && download >= 25) return { text: "Хорошо", color: "#0984e3", video: "1440p" };
-  if (ping < 150 && download >= 10) return { text: "Средне", color: "#fdcb6e", video: "1080p" };
-  if (download >= 5) return { text: "Средне", color: "#fdcb6e", video: "720p" };
+function getOverallQuality(ping, download, upload) {
+  const avgSpeed = (download + upload) / 2;
+
+  if (ping < 30 && avgSpeed >= 50) return { text: "Отлично", color: "#00b894", video: "4K" };
+  if (ping < 80 && avgSpeed >= 25) return { text: "Хорошо", color: "#0984e3", video: "1440p" };
+  if (ping < 150 && avgSpeed >= 10) return { text: "Средне", color: "#fdcb6e", video: "1080p" };
+  if (avgSpeed >= 5) return { text: "Средне", color: "#fdcb6e", video: "720p" };
   return { text: "Плохо", color: "#d63031", video: "360p" };
 }
 
@@ -49,7 +51,8 @@ speedStart.onclick = async () => {
 
     await new Promise(r => setTimeout(r, 600));
 
-    const overall = getOverallQuality(ping, downloadResult);
+    const estimatedUpload = downloadResult * 0.78;
+    const overall = getOverallQuality(ping, downloadResult, estimatedUpload);
 
     speedResult.innerHTML = `
       <div style="text-align:center;">
@@ -59,6 +62,10 @@ speedStart.onclick = async () => {
           <div>
             <div style="font-size:11px;color:#555;">Загрузка</div>
             <div style="font-size:18px;font-weight:700;color:#00b894;">${downloadResult.toFixed(1)}<span style="font-size:11px;"> Мбит/с</span></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#555;">Отдача ~</div>
+            <div style="font-size:18px;font-weight:700;color:#0984e3;">${estimatedUpload.toFixed(1)}<span style="font-size:11px;"> Мбит/с</span></div>
           </div>
           <div>
             <div style="font-size:11px;color:#555;">Задержка</div>
@@ -82,7 +89,7 @@ async function measurePing(progressBar, pingText) {
 
   for (let i = 0; i < 10; i++) {
     const start = performance.now();
-    await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" });
+    await fetch("https://ip-check-livid.vercel.app/api/ip?ping=1", { cache: "no-store" });
     const end = performance.now();
     pings.push(Math.round(end - start));
 

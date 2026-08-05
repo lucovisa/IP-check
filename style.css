@@ -80,6 +80,26 @@ h2 {
   text-decoration: underline;
 }
 
+.screen-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #333;
+  color: #888;
+  border-radius: 50%;
+  font-size: 11px;
+  cursor: help;
+  margin-left: 6px;
+  font-weight: bold;
+}
+
+.screen-help:hover {
+  background: #555;
+  color: white;
+}
+
 input {
   width: 100%;
   padding: 16px 18px;

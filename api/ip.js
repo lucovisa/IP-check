@@ -91,6 +91,10 @@ module.exports = async (req, res) => {
   }
 
   try {
+    if (req.query.ping === "1") {
+      return res.status(200).json({ ping: "pong", time: Date.now() });
+    }
+
     let ip = req.query.ip;
 
     if (!ip) {
