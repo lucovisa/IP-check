@@ -1,31 +1,37 @@
-const button=document.getElementById("check");
-const result=document.getElementById("result");
+const axios=require("axios");
 
-button.onclick=async()=>{
+module.exports=async(req,res)=>{
 
-result.innerHTML="Загрузка...";
+res.setHeader("Access-Control-Allow-Origin","*");
+res.setHeader("Access-Control-Allow-Methods","GET,OPTIONS");
+res.setHeader("Access-Control-Allow-Headers","Content-Type");
+
+if(req.method==="OPTIONS"){
+return res.status(200).end();
+}
 
 try{
 
-const response=await fetch("https://ip-check-livid.vercel.app/api/ip");
-const data=await response.json();
+const ip=req.headers["x-forwarded-for"]?.split(",")[0]||req.socket.remoteAddress;
 
-result.innerHTML=`
-<h2>${data.ip}</h2>
+console.log(`[${new Date().toLocaleString()}] IP: ${ip}`);
 
-<b>Страна:</b> ${data.country} ${data.flag.emoji}<br>
-<b>Регион:</b> ${data.region}<br>
-<b>Город:</b> ${data.city}<br>
-<b>Провайдер:</b> ${data.connection.isp}<br>
-<b>Организация:</b> ${data.connection.org}<br>
-<b>ASN:</b> ${data.connection.asn}<br>
-<b>Часовой пояс:</b> ${data.timezone.id}<br>
-<b>Координаты:</b> ${data.latitude}, ${data.longitude}
-`;
+const response=await axios.get(`https://ipwho.is/${ip}`,{
+timeout:5000
+});
 
-}catch{
+console.log(`${response.data.country} ${response.data.ip}`);
 
-result.innerHTML="Ошибка подключения.";
+res.status(200).json(response.data);
+
+}catch(e){
+
+console.log("ERROR:",e.message);
+
+res.status(500).json({
+success:false,
+error:e.message
+});
 
 }
 
