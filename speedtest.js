@@ -10,14 +10,6 @@
 const speedStart = document.getElementById("speedStart");
 const speedResult = document.getElementById("speedResult");
 
-const CDN_FILES = [
-  "https://speed.cloudflare.com/__down?bytes=10000000",
-  "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js",
-  "https://code.jquery.com/jquery-3.7.1.min.js",
-  "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
-];
-
 function getOverallQuality(ping, download) {
   if (ping < 30 && download >= 50) return { text: "Отлично", color: "#00b894", video: "4K" };
   if (ping < 80 && download >= 25) return { text: "Хорошо", color: "#0984e3", video: "1440p" };
@@ -33,7 +25,7 @@ speedStart.onclick = async () => {
     <div style="text-align:center;">
       <div style="font-size:15px;margin-bottom:12px;color:#888;">Измерение загрузки...</div>
       <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
-        <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.1s;"></div>
+        <div id="progress" style="width:0%;height:100%;background:#00b894;border-radius:2px;transition:width 0.08s;"></div>
       </div>
       <div style="font-size:13px;color:#888;margin-top:6px;" id="currentSpeed">0 Мбит/с</div>
     </div>
@@ -49,12 +41,13 @@ speedStart.onclick = async () => {
         <div style="width:100%;height:4px;background:#1b1b1b;border-radius:2px;overflow:hidden;">
           <div id="progress" style="width:0%;height:100%;background:#fdcb6e;border-radius:2px;transition:width 0.3s;"></div>
         </div>
+        <div style="font-size:13px;color:#888;margin-top:6px;" id="pingValue">...</div>
       </div>
     `;
 
-    const ping = await measurePing(document.getElementById("progress"));
+    const ping = await measurePing(document.getElementById("progress"), document.getElementById("pingValue"));
 
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 600));
 
     const overall = getOverallQuality(ping, downloadResult);
 
@@ -84,7 +77,7 @@ speedStart.onclick = async () => {
   }
 };
 
-async function measurePing(progressBar) {
+async function measurePing(progressBar, pingText) {
   const pings = [];
 
   for (let i = 0; i < 10; i++) {
@@ -94,9 +87,10 @@ async function measurePing(progressBar) {
     pings.push(Math.round(end - start));
 
     progressBar.style.width = ((i + 1) / 10) * 100 + "%";
+    pingText.textContent = pings[Math.floor(pings.length / 2)] + " мс";
 
     if (i < 9) {
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 80));
     }
   }
 
@@ -108,10 +102,11 @@ async function measureDownload(durationSec, progressBar, speedText) {
   const startTime = performance.now();
   let totalBytes = 0;
 
-  async function downloadFromCDN(url) {
+  async function downloadStream(id) {
     while (performance.now() - startTime < durationSec * 1000) {
+      const file = `https://speed.cloudflare.com/__down?bytes=10000000&r=${Math.random()}`;
       try {
-        const response = await fetch(url + "&r=" + Math.random(), { cache: "no-store" });
+        const response = await fetch(file, { cache: "no-store" });
         const reader = response.body.getReader();
         while (true) {
           const { done, value } = await reader.read();
@@ -126,7 +121,10 @@ async function measureDownload(durationSec, progressBar, speedText) {
     }
   }
 
-  const workers = CDN_FILES.map(url => downloadFromCDN(url));
+  const workers = [];
+  for (let i = 0; i < 8; i++) {
+    workers.push(downloadStream(i));
+  }
 
   const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
@@ -135,7 +133,7 @@ async function measureDownload(durationSec, progressBar, speedText) {
     const totalMB = totalBytes / 1000000;
     const speed = (totalMB / Math.max(elapsed, 0.1)) * 8;
     speedText.textContent = speed.toFixed(1) + " Мбит/с";
-  }, 200);
+  }, 150);
 
   await Promise.race([
     Promise.all(workers),

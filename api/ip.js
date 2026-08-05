@@ -49,10 +49,27 @@ function getBrowser(ua) {
 }
 
 function getOS(ua) {
+  if (ua.includes("Windows NT 10.0")) return "Windows 10/11";
+  if (ua.includes("Windows NT 6.3")) return "Windows 8.1";
+  if (ua.includes("Windows NT 6.2")) return "Windows 8";
+  if (ua.includes("Windows NT 6.1")) return "Windows 7";
   if (ua.includes("Windows")) return "Windows";
-  if (ua.includes("Android")) return "Android";
-  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
-  if (ua.includes("Mac")) return "macOS";
+
+  if (ua.includes("Android")) {
+    const match = ua.match(/Android\s([\d.]+)/);
+    return match ? `Android ${match[1]}` : "Android";
+  }
+
+  if (ua.includes("iPhone") || ua.includes("iPad")) {
+    const match = ua.match(/OS\s(\d+_\d+)/);
+    return match ? `iOS ${match[1].replace(/_/g, ".")}` : "iOS";
+  }
+
+  if (ua.includes("Mac OS X")) {
+    const match = ua.match(/Mac OS X\s([\d_]+)/);
+    return match ? `macOS ${match[1].replace(/_/g, ".")}` : "macOS";
+  }
+
   if (ua.includes("Linux")) return "Linux";
 
   return "Неизвестная ОС";
