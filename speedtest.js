@@ -117,30 +117,41 @@ async function measurePing(progressBar) {
 }
 
 async function measureDownload(durationSec, progressBar, speedText) {
-  const speeds = [];
   const startTime = performance.now();
   let totalBytes = 0;
+  const speeds = [];
 
-  while (performance.now() - startTime < durationSec * 1000) {
-    const file = `https://speed.cloudflare.com/__down?bytes=2000000&r=${Math.random()}`;
-    const reqStart = performance.now();
+  async function downloadLoop() {
+    while (performance.now() - startTime < durationSec * 1000) {
+      const file = `https://speed.cloudflare.com/__down?bytes=10000000&r=${Math.random()}`;
+      const reqStart = performance.now();
 
-    const response = await fetch(file, { cache: "no-store" });
-    await response.arrayBuffer();
+      const response = await fetch(file, { cache: "no-store" });
+      await response.arrayBuffer();
 
-    const reqEnd = performance.now();
-    const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (2 / seconds) * 8;
-    speeds.push(speed);
-    totalBytes += 2000000;
+      const reqEnd = performance.now();
+      const seconds = (reqEnd - reqStart) / 1000;
+      const speed = (10 / seconds) * 8;
+      speeds.push(speed);
+      totalBytes += 10000000;
+    }
+  }
 
+  const workers = [downloadLoop(), downloadLoop(), downloadLoop(), downloadLoop()];
+
+  const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
     const percent = Math.min((elapsed / durationSec) * 100, 100);
     progressBar.style.width = percent + "%";
 
-    const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-    speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-  }
+    if (speeds.length > 0) {
+      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+      speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
+    }
+  }, 200);
+
+  await Promise.all(workers);
+  clearInterval(updateInterval);
 
   const totalTime = (performance.now() - startTime) / 1000;
   const totalMB = totalBytes / 1000000;
@@ -148,41 +159,52 @@ async function measureDownload(durationSec, progressBar, speedText) {
 }
 
 async function measureUpload(durationSec, progressBar, speedText) {
-  const speeds = [];
   const startTime = performance.now();
   let totalBytes = 0;
+  const speeds = [];
 
-  while (performance.now() - startTime < durationSec * 1000) {
-    const data = new Uint8Array(1000000);
-    for (let j = 0; j < 1000000; j++) {
-      data[j] = Math.floor(Math.random() * 256);
+  async function uploadLoop() {
+    while (performance.now() - startTime < durationSec * 1000) {
+      const data = new Uint8Array(5000000);
+      for (let j = 0; j < 5000000; j++) {
+        data[j] = Math.floor(Math.random() * 256);
+      }
+
+      const reqStart = performance.now();
+
+      try {
+        await fetch("https://speed.cloudflare.com/__up", {
+          method: "POST",
+          cache: "no-store",
+          body: data
+        });
+      } catch {
+        continue;
+      }
+
+      const reqEnd = performance.now();
+      const seconds = (reqEnd - reqStart) / 1000;
+      const speed = (5 / seconds) * 8;
+      speeds.push(speed);
+      totalBytes += 5000000;
     }
+  }
 
-    const reqStart = performance.now();
+  const workers = [uploadLoop(), uploadLoop()];
 
-    try {
-      await fetch("https://speed.cloudflare.com/__up", {
-        method: "POST",
-        cache: "no-store",
-        body: data
-      });
-    } catch {
-      continue;
-    }
-
-    const reqEnd = performance.now();
-    const seconds = (reqEnd - reqStart) / 1000;
-    const speed = (1 / seconds) * 8;
-    speeds.push(speed);
-    totalBytes += 1000000;
-
+  const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
     const percent = Math.min((elapsed / durationSec) * 100, 100);
     progressBar.style.width = percent + "%";
 
-    const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-    speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-  }
+    if (speeds.length > 0) {
+      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+      speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
+    }
+  }, 200);
+
+  await Promise.all(workers);
+  clearInterval(updateInterval);
 
   const totalTime = (performance.now() - startTime) / 1000;
   const totalMB = totalBytes / 1000000;
