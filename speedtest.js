@@ -119,38 +119,39 @@ async function measurePing(progressBar) {
 async function measureDownload(durationSec, progressBar, speedText) {
   const startTime = performance.now();
   let totalBytes = 0;
-  const speeds = [];
 
-  async function downloadLoop() {
+  async function downloadStream() {
     while (performance.now() - startTime < durationSec * 1000) {
-      const file = `https://speed.cloudflare.com/__down?bytes=10000000&r=${Math.random()}`;
       const reqStart = performance.now();
-
-      const response = await fetch(file, { cache: "no-store" });
-      await response.arrayBuffer();
-
+      const response = await fetch("https://speed.cloudflare.com/__down?meas=1", { cache: "no-store" });
+      const reader = response.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.length;
+        const elapsed = (performance.now() - startTime) / 1000;
+        if (elapsed >= durationSec) break;
+      }
       const reqEnd = performance.now();
-      const seconds = (reqEnd - reqStart) / 1000;
-      const speed = (10 / seconds) * 8;
-      speeds.push(speed);
-      totalBytes += 10000000;
     }
   }
 
-  const workers = [downloadLoop(), downloadLoop(), downloadLoop(), downloadLoop()];
+  const workers = [downloadStream(), downloadStream(), downloadStream(), downloadStream(), downloadStream(), downloadStream()];
 
   const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
     const percent = Math.min((elapsed / durationSec) * 100, 100);
     progressBar.style.width = percent + "%";
-
-    if (speeds.length > 0) {
-      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-      speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-    }
+    const totalMB = totalBytes / 1000000;
+    const speed = (totalMB / Math.max(elapsed, 0.1)) * 8;
+    speedText.textContent = speed.toFixed(1) + " Мбит/с";
   }, 200);
 
-  await Promise.all(workers);
+  await Promise.race([
+    Promise.all(workers),
+    new Promise(r => setTimeout(r, durationSec * 1000))
+  ]);
+
   clearInterval(updateInterval);
 
   const totalTime = (performance.now() - startTime) / 1000;
@@ -161,12 +162,11 @@ async function measureDownload(durationSec, progressBar, speedText) {
 async function measureUpload(durationSec, progressBar, speedText) {
   const startTime = performance.now();
   let totalBytes = 0;
-  const speeds = [];
 
-  async function uploadLoop() {
+  async function uploadStream() {
     while (performance.now() - startTime < durationSec * 1000) {
-      const data = new Uint8Array(5000000);
-      for (let j = 0; j < 5000000; j++) {
+      const data = new Uint8Array(1000000);
+      for (let j = 0; j < 1000000; j++) {
         data[j] = Math.floor(Math.random() * 256);
       }
 
@@ -178,32 +178,29 @@ async function measureUpload(durationSec, progressBar, speedText) {
           cache: "no-store",
           body: data
         });
+        totalBytes += 1000000;
       } catch {
         continue;
       }
-
-      const reqEnd = performance.now();
-      const seconds = (reqEnd - reqStart) / 1000;
-      const speed = (5 / seconds) * 8;
-      speeds.push(speed);
-      totalBytes += 5000000;
     }
   }
 
-  const workers = [uploadLoop(), uploadLoop()];
+  const workers = [uploadStream(), uploadStream(), uploadStream(), uploadStream()];
 
   const updateInterval = setInterval(() => {
     const elapsed = (performance.now() - startTime) / 1000;
     const percent = Math.min((elapsed / durationSec) * 100, 100);
     progressBar.style.width = percent + "%";
-
-    if (speeds.length > 0) {
-      const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-      speedText.textContent = avgSpeed.toFixed(1) + " Мбит/с";
-    }
+    const totalMB = totalBytes / 1000000;
+    const speed = (totalMB / Math.max(elapsed, 0.1)) * 8;
+    speedText.textContent = speed.toFixed(1) + " Мбит/с";
   }, 200);
 
-  await Promise.all(workers);
+  await Promise.race([
+    Promise.all(workers),
+    new Promise(r => setTimeout(r, durationSec * 1000))
+  ]);
+
   clearInterval(updateInterval);
 
   const totalTime = (performance.now() - startTime) / 1000;
